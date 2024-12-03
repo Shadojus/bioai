@@ -1,0 +1,48 @@
+// src/lib/wearables/garmin-service.ts
+import GarminConnect from "garmin-connect";
+
+export interface GarminHealthData {
+    steps: number;
+    heartRate: number;
+    stressLevel: number;
+    bodyBattery: number;
+    readinessScore: number;
+    sleep?: {
+        duration: number;
+        quality: number;
+        deepSleep: number;
+    };
+    timestamp: string;
+}
+
+class GarminService {
+    private static instance: GarminService;
+    private client: GarminConnect;
+    private isAuthenticated: boolean = false;
+
+    private constructor() {
+        this.client = new GarminConnect();
+    }
+
+    public static getInstance(): GarminService {
+        if (!GarminService.instance) {
+            GarminService.instance = new GarminService();
+        }
+        return GarminService.instance;
+    }
+
+    public async login(email: string, password: string): Promise<boolean> {
+        try {
+            await this.client.login(email, password);
+            this.isAuthenticated = true;
+            return true;
+        } catch (error) {
+            console.error("Garmin login error:", error);
+            throw error;
+        }
+    }
+
+    // Rest of the service implementation...
+}
+
+export const garminService = GarminService.getInstance();

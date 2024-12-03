@@ -1,42 +1,68 @@
 // src/hooks/useWearable.ts
 
 import { useState, useEffect } from "react";
-import { GarminMetrics } from "@/lib/wearables/garmin-service";
-import { logInfo, logError } from "@/lib/utils/logging";
+import { useRouter } from "next/navigation";
+
+export interface WearableMetrics {
+  steps: number;
+  heartRate: number;
+  stressLevel: number;
+  bodyBattery: number;
+  readinessScore: number;
+  timestamp: string;
+}
 
 export function useWearable() {
-  const [currentMetrics, setCurrentMetrics] = useState<GarminMetrics | null>(
+  const [currentMetrics, setCurrentMetrics] = useState<WearableMetrics | null>(
     null
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      setLoading(true);
-      setError(null);
+  const checkAuthAndFetchMetrics = async () => {
+    try {
+      const response = await fetch("/api/garmin/metrics/current");
 
-      try {
-        const response = await fetch("/api/garmin/metrics");
-        if (!response.ok) {
-          throw new Error("Failed to fetch Garmin metrics.");
-        }
-
-        const data: GarminMetrics = await response.json();
-        setCurrentMetrics(data);
-        logInfo("Garmin metrics fetched successfully.", data);
-      } catch (err) {
-        logError("Error fetching Garmin metrics:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
+      if (response.status === 401) {
+        router.push("/garmin-login");
+        throw new Error("Please connect your Garmin device");
       }
-    };
 
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 60000); // Refresh every minute
+      if (!response.ok) {
+        throw new Error("Failed to fetch metrics");
+      }
+
+      const data = await response.json();
+      setCurrentMetrics(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch metrics");
+      console.error("Error fetching metrics:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    checkAuthAndFetchMetrics();
+
+    // Set up polling every 5 minutes
+    const interval = setInterval(checkAuthAndFetchMetrics, 5 * 60 * 1000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [router]);
 
-  return { currentMetrics, loading, error };
+  const refreshMetrics = () => {
+    setLoading(true);
+    checkAuthAndFetchMetrics();
+  };
+
+  return {
+    currentMetrics,
+    loading,
+    error,
+    refreshMetrics,
+  };
 }

@@ -2,18 +2,24 @@
 "use client";
 
 import React, { createContext, useContext, useReducer } from "react";
+import { StateColor } from "@/lib/state/state-manager";
 
 export interface SystemState {
-  currentState: string;
+  currentState: StateColor;
   energy: number;
   focus: number;
   stress: number;
-  history: Array<{ state: string; timestamp: string }>;
+  history: Array<{ state: StateColor; timestamp: string }>;
 }
 
 type Action =
   | { type: "UPDATE_METRICS"; payload: Partial<SystemState> }
-  | { type: "RESET_STATE" };
+  | { type: "SET_STATE"; payload: StateColor }
+  | { type: "RESET_STATE" }
+  | { type: "UPDATE_ENERGY"; payload: number }
+  | { type: "UPDATE_FOCUS"; payload: number }
+  | { type: "UPDATE_STRESS"; payload: number }
+  | { type: "TRANSITION_STATE"; payload: StateColor };
 
 const initialState: SystemState = {
   currentState: "green",
@@ -37,17 +43,66 @@ function stateReducer(state: SystemState, action: Action): SystemState {
           },
         ],
       };
+
+    case "SET_STATE":
+      return {
+        ...state,
+        currentState: action.payload,
+        history: [
+          ...state.history,
+          {
+            state: action.payload,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      };
+
+    case "UPDATE_ENERGY":
+      return {
+        ...state,
+        energy: action.payload,
+      };
+
+    case "UPDATE_FOCUS":
+      return {
+        ...state,
+        focus: action.payload,
+      };
+
+    case "UPDATE_STRESS":
+      return {
+        ...state,
+        stress: action.payload,
+      };
+
+    case "TRANSITION_STATE":
+      return {
+        ...state,
+        currentState: action.payload,
+        history: [
+          ...state.history,
+          {
+            state: action.payload,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      };
+
     case "RESET_STATE":
       return initialState;
+
     default:
-      throw new Error("Unhandled action type");
+      console.warn("Unknown action type:", (action as any).type);
+      return state;
   }
 }
 
-const StateContext = createContext<{
+interface StateContextType {
   state: SystemState;
   dispatch: React.Dispatch<Action>;
-} | null>(null);
+}
+
+const StateContext = createContext<StateContextType | null>(null);
 
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -68,3 +123,38 @@ export const useSystemState = () => {
   }
   return context;
 };
+
+// Helper functions
+export const updateMetrics = (metrics: Partial<SystemState>) => ({
+  type: "UPDATE_METRICS" as const,
+  payload: metrics,
+});
+
+export const setState = (state: StateColor) => ({
+  type: "SET_STATE" as const,
+  payload: state,
+});
+
+export const updateEnergy = (energy: number) => ({
+  type: "UPDATE_ENERGY" as const,
+  payload: energy,
+});
+
+export const updateFocus = (focus: number) => ({
+  type: "UPDATE_FOCUS" as const,
+  payload: focus,
+});
+
+export const updateStress = (stress: number) => ({
+  type: "UPDATE_STRESS" as const,
+  payload: stress,
+});
+
+export const transitionState = (state: StateColor) => ({
+  type: "TRANSITION_STATE" as const,
+  payload: state,
+});
+
+export const resetState = () => ({
+  type: "RESET_STATE" as const,
+});
