@@ -1,0 +1,12 @@
+{
+  "deployments": [
+    {
+      "name": "prod",
+      "project": "bioai-prod"
+    },
+    {
+      "name": "dev",
+      "project": "bioai-dev"
+    }
+  ]
+}
