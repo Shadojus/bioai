@@ -1,6 +1,7 @@
 // src/lib/state/state-manager.ts
 
 import { BiometricData } from "@/types/biometric";
+import { EnhancedAIResponse } from "@/lib/ai/enhanced-integration";
 import { SuccessTracker } from "@/lib/success/success-tracker";
 
 export type StateColor = "deep-blue" | "green" | "purple" | "orange" | "gray";
@@ -14,10 +15,11 @@ export interface StateDefinition {
   energyThreshold: number;
   stressThreshold: number;
   focusThreshold: number;
+  aiModel: "gpt" | "claude" | "auto";
   transitionRules: {
     allowedNextStates: StateColor[];
-    minDuration: number; // in minutes
-    cooldownPeriod: number; // in minutes
+    minDuration: number; // in Minuten
+    cooldownPeriod: number; // in Minuten
   };
 }
 
@@ -31,6 +33,7 @@ export const STATE_DEFINITIONS: Record<StateColor, StateDefinition> = {
     energyThreshold: 70,
     stressThreshold: 30,
     focusThreshold: 80,
+    aiModel: "claude",
     transitionRules: {
       allowedNextStates: ["green", "purple", "gray"],
       minDuration: 45,
@@ -46,6 +49,7 @@ export const STATE_DEFINITIONS: Record<StateColor, StateDefinition> = {
     energyThreshold: 60,
     stressThreshold: 50,
     focusThreshold: 60,
+    aiModel: "auto",
     transitionRules: {
       allowedNextStates: ["deep-blue", "purple", "orange"],
       minDuration: 30,
@@ -61,6 +65,7 @@ export const STATE_DEFINITIONS: Record<StateColor, StateDefinition> = {
     energyThreshold: 65,
     stressThreshold: 40,
     focusThreshold: 75,
+    aiModel: "claude",
     transitionRules: {
       allowedNextStates: ["deep-blue", "green", "orange"],
       minDuration: 40,
@@ -76,6 +81,7 @@ export const STATE_DEFINITIONS: Record<StateColor, StateDefinition> = {
     energyThreshold: 50,
     stressThreshold: 60,
     focusThreshold: 65,
+    aiModel: "gpt",
     transitionRules: {
       allowedNextStates: ["green", "purple", "gray"],
       minDuration: 25,
@@ -91,6 +97,7 @@ export const STATE_DEFINITIONS: Record<StateColor, StateDefinition> = {
     energyThreshold: 40,
     stressThreshold: 70,
     focusThreshold: 50,
+    aiModel: "auto",
     transitionRules: {
       allowedNextStates: ["deep-blue", "green", "orange"],
       minDuration: 20,
@@ -115,11 +122,6 @@ export class StateManager {
     return StateManager.instance;
   }
 
-  /**
-   * Transitions to a new state, if allowed.
-   * @param newState - The target state.
-   * @param force - Whether to bypass rules.
-   */
   public async transitionTo(
     newState: StateColor,
     force: boolean = false
@@ -138,28 +140,34 @@ export class StateManager {
       }
     }
 
-    this.stateHistory.push({ state: this.currentState, timestamp: new Date() });
+    this.stateHistory.push({
+      state: this.currentState,
+      timestamp: new Date(),
+    });
     this.currentState = newState;
     this.lastTransition = new Date();
 
-    SuccessTracker.getInstance().logSuccess(`Transitioned to ${newState}`, 10);
+    SuccessTracker.getInstance().logSuccess(
+      `Transitioned to ${newState}`,
+      10 // Reward points for successful transition
+    );
+
     await this.initializeStateConfigs(newState);
     return true;
   }
 
-  /**
-   * Checks if the transition to a given state is allowed.
-   */
+  public getCurrentState(): StateColor {
+    return this.currentState;
+  }
+
   private isTransitionAllowed(newState: StateColor): boolean {
     const currentDef = STATE_DEFINITIONS[this.currentState];
     return currentDef.transitionRules.allowedNextStates.includes(newState);
   }
 
-  /**
-   * Ensures the biometric data meets the thresholds for the target state.
-   */
   private meetsBiometricThresholds(stateDef: StateDefinition): boolean {
     if (!this.metrics) return false;
+
     return (
       this.metrics.bodyBattery >= stateDef.energyThreshold &&
       this.metrics.stressLevel <= stateDef.stressThreshold &&
@@ -167,25 +175,7 @@ export class StateManager {
     );
   }
 
-  /**
-   * Initializes configurations for the new state.
-   */
   private async initializeStateConfigs(state: StateColor): Promise<void> {
     console.log(`Initializing state: ${state}`);
-    // Add specific initialization logic here
-  }
-
-  /**
-   * Returns the current state.
-   */
-  public getCurrentState(): StateColor {
-    return this.currentState;
-  }
-
-  /**
-   * Returns the full state history.
-   */
-  public getStateHistory(): Array<{ state: StateColor; timestamp: Date }> {
-    return this.stateHistory;
   }
 }

@@ -1,76 +1,60 @@
 // src/components/emergency/EmergencyAlerts.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { AlertTriangle, XCircle } from "lucide-react";
-import { useSystemState } from "@/contexts/StateContext";
+import { useState, useCallback } from "react";
+import { AlertTriangle, X } from "lucide-react";
 
-export interface Alert {
+interface EmergencyAlert {
   id: string;
-  type: "warning" | "error" | "info";
   message: string;
-  timestamp: Date;
+  type: "warning" | "critical" | "severe";
 }
 
 export function EmergencyAlerts() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const { state } = useSystemState();
+  const [alerts, setAlerts] = useState<EmergencyAlert[]>([
+    {
+      id: "1",
+      message: "High stress levels detected!",
+      type: "critical",
+    },
+    {
+      id: "2",
+      message: "Wearable device disconnected.",
+      type: "warning",
+    },
+  ]);
 
-  useEffect(() => {
-    // Monitor system state for potential emergencies
-    if (state.energy < 20) {
-      addAlert({
-        type: "warning",
-        message:
-          "Low energy detected. Consider transitioning to recovery state.",
-      });
-    }
+  const handleDismiss = useCallback((id: string) => {
+    setAlerts((prevAlerts) => prevAlerts.filter((alert) => alert.id !== id));
+  }, []);
 
-    if (state.stress > 80) {
-      addAlert({
-        type: "error",
-        message: "High stress levels detected. Immediate action required.",
-      });
-    }
-  }, [state]);
-
-  const addAlert = (alert: Omit<Alert, "id" | "timestamp">) => {
-    const newAlert: Alert = {
-      ...alert,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    };
-    setAlerts((prev) => [newAlert, ...prev]);
-  };
-
-  const removeAlert = (id: string) => {
-    setAlerts((prev) => prev.filter((alert) => alert.id !== id));
-  };
-
-  if (alerts.length === 0) return null;
+  if (!alerts.length) {
+    return null;
+  }
 
   return (
-    <div className="fixed bottom-4 right-4 space-y-2 z-50">
+    <div className="fixed bottom-4 right-4 z-50 space-y-2">
       {alerts.map((alert) => (
         <div
           key={alert.id}
-          className={`p-4 rounded-lg shadow-lg flex items-start space-x-2
-            ${
-              alert.type === "error"
-                ? "bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100"
-                : alert.type === "warning"
-                  ? "bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100"
-                  : "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
-            }`}
+          className={`rounded-lg p-4 shadow-lg ${
+            alert.type === "warning"
+              ? "bg-yellow-100 text-yellow-800"
+              : alert.type === "critical"
+                ? "bg-orange-100 text-orange-800"
+                : "bg-red-100 text-red-800"
+          }`}
         >
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <p className="flex-1">{alert.message}</p>
-          <button
-            onClick={() => removeAlert(alert.id)}
-            className="flex-shrink-0 hover:opacity-75"
-          >
-            <XCircle className="h-5 w-5" />
-          </button>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <p className="flex-1 text-sm">{alert.message}</p>
+            <button
+              onClick={() => handleDismiss(alert.id)}
+              className="shrink-0 rounded-full p-1 hover:bg-black/5"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       ))}
     </div>

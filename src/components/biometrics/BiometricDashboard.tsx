@@ -25,14 +25,9 @@ export function BiometricDashboard() {
     );
   }
 
-  if (!currentMetrics) return null;
-
-  const energyData = historicalData.map((d) => ({
-    value: d.bodyBattery,
-    label: new Date(d.timestamp).toLocaleDateString(undefined, {
-      weekday: "short",
-    }),
-  }));
+  if (!currentMetrics) {
+    return <div className="text-gray-500">No biometric data available.</div>;
+  }
 
   const metrics = [
     {
@@ -41,7 +36,12 @@ export function BiometricDashboard() {
       icon: Battery,
       color: "text-green-500",
       bgColor: "bg-green-100 dark:bg-green-900/20",
-      chartData: energyData,
+      chartData: historicalData.map((d) => ({
+        value: d.bodyBattery,
+        label: new Date(d.timestamp).toLocaleDateString(undefined, {
+          weekday: "short",
+        }),
+      })),
       chartColor: "#22c55e",
     },
     {
@@ -58,7 +58,34 @@ export function BiometricDashboard() {
       })),
       chartColor: "#ef4444",
     },
-    // ... other metrics
+    {
+      label: "Readiness Score",
+      value: `${currentMetrics.readinessScore}`,
+      icon: Brain,
+      color: "text-blue-500",
+      bgColor: "bg-blue-100 dark:bg-blue-900/20",
+      chartData: historicalData.map((d) => ({
+        value: d.readinessScore,
+        label: new Date(d.timestamp).toLocaleDateString(undefined, {
+          weekday: "short",
+        }),
+      })),
+      chartColor: "#3b82f6",
+    },
+    {
+      label: "Steps",
+      value: `${currentMetrics.steps}`,
+      icon: Activity,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-100 dark:bg-yellow-900/20",
+      chartData: historicalData.map((d) => ({
+        value: d.steps,
+        label: new Date(d.timestamp).toLocaleDateString(undefined, {
+          weekday: "short",
+        }),
+      })),
+      chartColor: "#f59e0b",
+    },
   ];
 
   return (

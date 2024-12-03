@@ -1,13 +1,12 @@
 // src/components/system/StateControls.tsx
-
 "use client";
 
 import { useState } from "react";
 import { useSystemState } from "@/contexts/StateContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Activity, Globe, Settings } from "lucide-react";
 import { STATE_DEFINITIONS, StateColor } from "@/lib/state/state-manager";
+import { Brain, Activity, Globe, Settings } from "lucide-react";
 
 interface StateButtonProps {
   stateKey: StateColor;

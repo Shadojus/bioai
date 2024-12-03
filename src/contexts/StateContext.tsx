@@ -1,69 +1,69 @@
 // src/contexts/StateContext.tsx
 "use client";
 
-import { createContext, useContext, useReducer, ReactNode } from "react";
-
-export type StateColor = "deep-blue" | "green" | "purple" | "orange" | "gray";
+import React, { createContext, useContext, useReducer } from "react";
 
 export interface SystemState {
-  currentState: StateColor;
+  currentState: string;
   energy: number;
   focus: number;
   stress: number;
-  mode: "active" | "rest" | "emergency";
-  lastUpdate: Date;
+  history: Array<{ state: string; timestamp: string }>;
 }
 
 type Action =
-  | { type: "SET_STATE"; payload: StateColor }
-  | {
-      type: "UPDATE_METRICS";
-      payload: Partial<Omit<SystemState, "currentState">>;
-    }
-  | { type: "SET_MODE"; payload: SystemState["mode"] };
+  | { type: "UPDATE_METRICS"; payload: Partial<SystemState> }
+  | { type: "RESET_STATE" };
 
 const initialState: SystemState = {
   currentState: "green",
-  energy: 100,
-  focus: 100,
-  stress: 0,
-  mode: "active",
-  lastUpdate: new Date(),
+  energy: 75,
+  focus: 80,
+  stress: 20,
+  history: [],
 };
+
+function stateReducer(state: SystemState, action: Action): SystemState {
+  switch (action.type) {
+    case "UPDATE_METRICS":
+      return {
+        ...state,
+        ...action.payload,
+        history: [
+          ...state.history,
+          {
+            state: action.payload.currentState || state.currentState,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      };
+    case "RESET_STATE":
+      return initialState;
+    default:
+      throw new Error("Unhandled action type");
+  }
+}
 
 const StateContext = createContext<{
   state: SystemState;
   dispatch: React.Dispatch<Action>;
-}>({
-  state: initialState,
-  dispatch: () => null,
-});
+} | null>(null);
 
-function reducer(state: SystemState, action: Action): SystemState {
-  switch (action.type) {
-    case "SET_STATE":
-      return { ...state, currentState: action.payload, lastUpdate: new Date() };
-    case "UPDATE_METRICS":
-      return { ...state, ...action.payload, lastUpdate: new Date() };
-    case "SET_MODE":
-      return { ...state, mode: action.payload, lastUpdate: new Date() };
-    default:
-      return state;
-  }
-}
+export const StateProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [state, dispatch] = useReducer(stateReducer, initialState);
 
-export function StateProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
   return (
     <StateContext.Provider value={{ state, dispatch }}>
       {children}
     </StateContext.Provider>
   );
-}
+};
 
 export const useSystemState = () => {
   const context = useContext(StateContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useSystemState must be used within a StateProvider");
   }
   return context;

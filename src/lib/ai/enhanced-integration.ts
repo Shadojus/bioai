@@ -1,134 +1,47 @@
 // src/lib/ai/enhanced-integration.ts
-import { StateColor } from "@/types/system";
-import { BiometricData } from "@/types/biometric";
 
 export interface EnhancedAIResponse {
   content: string;
-  confidence: number;
-  source: "gpt" | "claude";
-  timestamp: Date;
-  metadata: {
-    executionTime: number;
-    tokenCount: number;
-    contextQuality: number;
-    stateAlignment: number;
-  };
-  suggestions?: {
-    nextActions: string[];
-    stateTransitions: StateColor[];
-    energyOptimizations: string[];
-  };
+  model: "gpt" | "claude" | "auto";
+  confidence: number; // Confidence score between 0 and 1
 }
 
-export interface EnhancedAIRequest {
-  prompt: string;
-  context: {
-    systemState: StateColor;
-    biometricData: BiometricData;
-    previousResponses: EnhancedAIResponse[];
-    environmentData: {
-      timeOfDay: string;
-      location: string;
-      deviceContext: string;
-    };
-  };
-  preferences: {
-    preferredModel: "gpt" | "claude" | "auto";
-    responseFormat: "detailed" | "concise";
-    maxTokens: number;
-    temperature: number;
-  };
-}
+export class EnhancedAIIntegration {
+  private model: "gpt" | "claude" | "auto";
 
-export class EnhancedAIIntegrationService {
-  private static instance: EnhancedAIIntegrationService;
-  private readonly gptConfig: AIModelConfig;
-  private readonly claudeConfig: AIModelConfig;
-
-  private constructor() {
-    this.gptConfig = {
-      endpoint: process.env.NEXT_PUBLIC_GPT_ENDPOINT!,
-      apiKey: process.env.GPT_API_KEY!,
-      modelVersion: "gpt-4-turbo",
-    };
-
-    this.claudeConfig = {
-      endpoint: process.env.NEXT_PUBLIC_CLAUDE_ENDPOINT!,
-      apiKey: process.env.CLAUDE_API_KEY!,
-      modelVersion: "claude-3-opus",
-    };
+  constructor(initialModel: "gpt" | "claude" | "auto" = "auto") {
+    this.model = initialModel;
   }
 
-  public static getInstance(): EnhancedAIIntegrationService {
-    if (!EnhancedAIIntegrationService.instance) {
-      EnhancedAIIntegrationService.instance =
-        new EnhancedAIIntegrationService();
-    }
-    return EnhancedAIIntegrationService.instance;
-  }
-
-  async processRequest(
-    request: EnhancedAIRequest
-  ): Promise<EnhancedAIResponse> {
-    const startTime = Date.now();
-
-    try {
-      const model = this.determineOptimalModel(request);
-      const response = await this.getModelResponse(request, model);
-
-      const executionTime = Date.now() - startTime;
-
-      return {
-        ...response,
-        metadata: {
-          ...response.metadata,
-          executionTime,
-          stateAlignment: this.calculateStateAlignment(
-            response,
-            request.context.systemState
-          ),
-          contextQuality: this.evaluateContextQuality(request.context),
-        },
-        suggestions: await this.generateSuggestions(response, request.context),
-      };
-    } catch (error) {
-      console.error("Enhanced AI Integration Error:", error);
-      throw new Error("Failed to process AI request");
-    }
-  }
-
-  private determineOptimalModel(request: EnhancedAIRequest): "gpt" | "claude" {
-    if (request.preferences.preferredModel !== "auto") {
-      return request.preferences.preferredModel;
-    }
-
-    // Complex decision matrix based on multiple factors
-    const factors = {
-      stateComplexity: this.calculateStateComplexity(
-        request.context.systemState
-      ),
-      biometricUrgency: this.evaluateBiometricUrgency(
-        request.context.biometricData
-      ),
-      timeConstraint: this.calculateTimeConstraint(
-        request.context.environmentData
-      ),
-    };
-
-    return this.evaluateModelSelection(factors);
-  }
-
-  private async generateSuggestions(
-    response: EnhancedAIResponse,
-    context: EnhancedAIRequest["context"]
-  ): Promise<EnhancedAIResponse["suggestions"]> {
-    // Implementation of advanced suggestion generation
+  /**
+   * Fetches a response from the selected AI model based on the given prompt.
+   * @param prompt - The user prompt for AI.
+   * @returns A promise with the AI's response.
+   */
+  public async getAIResponse(prompt: string): Promise<EnhancedAIResponse> {
+    console.log(`Fetching response from model: ${this.model}`);
+    // Placeholder logic for AI API interaction
     return {
-      nextActions: await this.predictNextActions(response, context),
-      stateTransitions: await this.suggestStateTransitions(context),
-      energyOptimizations: await this.generateEnergyOptimizations(context),
+      content: `Simulated response from ${this.model} for prompt: "${prompt}"`,
+      model: this.model,
+      confidence: Math.random(), // Simulate a confidence score
     };
   }
 
-  // Additional helper methods...
+  /**
+   * Updates the active AI model.
+   * @param newModel - The new AI model to be used.
+   */
+  public setModel(newModel: "gpt" | "claude" | "auto"): void {
+    this.model = newModel;
+    console.log(`AI model updated to: ${this.model}`);
+  }
+
+  /**
+   * Retrieves the current AI model.
+   * @returns The active AI model.
+   */
+  public getCurrentModel(): "gpt" | "claude" | "auto" {
+    return this.model;
+  }
 }

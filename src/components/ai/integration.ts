@@ -28,8 +28,8 @@ export class AIIntegrationService {
   private claudeEndpoint: string;
 
   private constructor() {
-    this.gptEndpoint = process.env.NEXT_PUBLIC_GPT_API_URL || "";
-    this.claudeEndpoint = process.env.NEXT_PUBLIC_CLAUDE_API_URL || "";
+    this.gptEndpoint = process.env.NEXT_PUBLIC_GPT_ENDPOINT || "";
+    this.claudeEndpoint = process.env.NEXT_PUBLIC_CLAUDE_ENDPOINT || "";
   }
 
   public static getInstance(): AIIntegrationService {
@@ -58,9 +58,11 @@ export class AIIntegrationService {
     if (request.preferredModel) {
       return request.preferredModel;
     }
+
     if (request.context?.systemState === "deep-blue") {
       return "claude";
     }
+
     return "gpt";
   }
 
@@ -88,15 +90,8 @@ export class AIIntegrationService {
   private async getGPTResponse(request: AIRequest): Promise<AIResponse> {
     const response = await fetch(this.gptEndpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_GPT_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        prompt: request.prompt,
-        max_tokens: 200,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {
@@ -105,10 +100,11 @@ export class AIIntegrationService {
 
     const data = await response.json();
     return {
-      content: data.choices[0].text.trim(),
-      confidence: 1,
+      content: data.response,
+      confidence: data.confidence,
       source: "gpt",
       timestamp: new Date(),
+      metadata: data.metadata,
     };
   }
 }

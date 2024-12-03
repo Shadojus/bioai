@@ -8,36 +8,56 @@ import {
   AIResponse,
 } from "@/lib/ai/integration";
 import { useSystemState } from "@/contexts/StateContext";
+import { logError, logInfo } from "@/lib/utils/logging";
 
 interface UseAIReturn {
   getAIResponse: (
     prompt: string,
-    preferredModel?: "gpt" | "claude"
+    preferredModel?: "gpt" | "claude" | "auto"
   ) => Promise<AIResponse>;
   loading: boolean;
-  error: Error | null;
+  error: string | null;
 }
 
 export function useAI(): UseAIReturn {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { state } = useSystemState();
 
   const getAIResponse = useCallback(
     async (
       prompt: string,
-      preferredModel?: "gpt" | "claude"
+      preferredModel: "gpt" | "claude" | "auto" = "auto"
     ): Promise<AIResponse> => {
       setLoading(true);
       setError(null);
+
       try {
-        // Implementation here
-        return {} as AIResponse; // Placeholder
+        const aiService = AIIntegrationService.getInstance();
+        const request: AIRequest = {
+          prompt,
+          context: {
+            systemState: state.currentState,
+            userMetrics: {
+              energy: state.energy,
+              stress: state.stress,
+              focus: state.focus,
+            },
+            previousResponses: [], // This could be extended for conversational context
+          },
+          preferredModel,
+        };
+
+        const response = await aiService.getResponse(request);
+
+        logInfo("AI response received", response);
+        return response;
       } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error("Unknown error occurred");
-        setError(error);
-        throw error;
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error occurred";
+        setError(errorMessage);
+        logError("AI response error", err);
+        throw new Error(errorMessage);
       } finally {
         setLoading(false);
       }
