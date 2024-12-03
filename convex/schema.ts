@@ -1,12 +1,9 @@
 // convex/schema.ts
-import { v } from "convex/values";
-import { defineTable, defineSchema } from "convex/server";
+import { defineSchema, defineTable, s } from "convex/server";
 
 export default defineSchema({
   messages: defineTable({
-    content: v.string(),
-    role: v.union(v.literal("user"), v.literal("assistant")),
-    userId: v.string(),
-    createdAt: v.number(),
+    content: s.string(),
+    role: s.union(s.literal("user"), s.literal("assistant")),
   }),
 });

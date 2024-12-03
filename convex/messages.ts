@@ -1,42 +1,24 @@
 // convex/messages.ts
+import { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
 
-export const send = mutation({
-  args: {
-    content: v.string(),
-    role: v.union(v.literal("user"), v.literal("assistant")),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const message = await ctx.db.insert("messages", {
-      content: args.content,
-      role: args.role,
-      userId: identity.subject,
-      createdAt: Date.now(),
-    });
-
-    return message;
-  },
+export const list = query(async ({ db }): Promise<Message[]> => {
+  return await db.query("messages").collect();
 });
 
-export const list = query({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+export const send = mutation(
+  async ({ db }, { content }: { content: string }) => {
+    const message: Message = {
+      _id: Id.fromString(new ObjectId().toString()),
+      content,
+      role: "assistant",
+    };
+    await db.insert("messages", message);
+  }
+);
 
-    const messages = await ctx.db
-      .query("messages")
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
-      .order("desc")
-      .take(50);
-
-    return messages;
-  },
-});
+interface Message {
+  _id: Id;
+  content: string;
+  role: "user" | "assistant";
+}
